@@ -9,6 +9,7 @@ PROCESSING_SUBSYSTEM_DEF(tts)
 	wait = 2
 	runlevels = (RUNLEVEL_LOBBY | RUNLEVEL_GAME | RUNLEVEL_POSTGAME)
 	var/list/ckeys_playing = list()// list of ckeys of users currently playing a tts sound
+	var/test_tts
 
 /datum/controller/subsystem/processing/tts/Initialize()
 	if (!CONFIG_GET(flag/enable_tts))
@@ -106,6 +107,7 @@ PROCESSING_SUBSYSTEM_DEF(tts)
 	var/ckey
 
 /datum/tts/process(wait)
+/*
 	switch(status)
 		if(STATUS_NEW)
 			var/uid = "[world.time]" + owner.ckey
@@ -123,8 +125,10 @@ PROCESSING_SUBSYSTEM_DEF(tts)
 			/* Check if this file is ready */
 			if (fexists(filename + ".ogg") && fexists(filename + ".meta"))
 				SStts.play_tts(src)
+*/
 
 /datum/tts/proc/say(client/C, msg, voice = "", is_global = FALSE, volume_mod = 1, datum/language/language)
+	to_chat(world, "tts say called")
 	if (!C)
 		return
 	if (!msg)
@@ -136,8 +140,15 @@ PROCESSING_SUBSYSTEM_DEF(tts)
 	src.is_global = is_global
 	src.volume_mod = volume_mod
 	src.language = language
-
-	START_PROCESSING(SStts, src)
+	var/txt = "http://localhost:59125/process?INPUT_TEXT="+replacetext(text, " ", "+")+"&INPUT_TYPE=TEXT&LOCALE=en_US&VOICE=cmu-slt-hsmm&OUTPUT_TYPE=AUDIO&AUDIO=WAVE"
+	to_chat(world, txt)
+	var/list/result = world.Export(txt)
+	for(var/i in result)
+		to_chat(world, "[i]" + "=" + "[result[i]]")
+	to_chat(world, "[json_encode(result["CONTENT"])]")
+	C << result["CONTENT"]
+	SStts.test_tts = result["CONTENT"]
+	qdel(src)
 
 /datum/tts/Destroy()
 	STOP_PROCESSING(SStts, src)
